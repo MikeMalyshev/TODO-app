@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"go_final_project/internal/app"
 	"net/http"
+
+	"go_final_project/internal/app"
+	"go_final_project/internal/config"
 )
 
 // Хэндлер обращений к `/api/task`
@@ -48,6 +50,7 @@ func (mux Mux) TaskPostHandler(resp http.ResponseWriter, req *http.Request) {
 
 	id, err := mux.app.AddTask(task)
 	if err != nil {
+		fmt.Println("trying to make json responce")
 		mux.makeErrorJsonResponse(err.Error(), resp)
 		return
 	}
@@ -139,7 +142,7 @@ func (mux Mux) TasksHandler(resp http.ResponseWriter, req *http.Request) {
 
 	searchString := req.URL.Query().Get("search")
 
-	tasks, err := mux.app.GetTaskList(searchString, 50)
+	tasks, err := mux.app.GetTaskList(searchString, config.TaskReturnLimit)
 	if err != nil {
 		mux.makeErrorJsonResponse(err.Error(), resp)
 		return

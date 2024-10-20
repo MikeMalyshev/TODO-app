@@ -3,24 +3,30 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"go_final_project/internal/app"
 	"strings"
+
+	"go_final_project/internal/app"
 )
 
 func (storage *DBStorage) AddTask(task app.Task) (int64, error) {
-	db, err := sql.Open("sqlite3_ext", storage.cfg.DBPath())
-	if err != nil {
-		return -1, fmt.Errorf("DBStorage.AddTask: %v", err)
-	}
-
-	res, err := db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat)",
+	res, err := storage.db.Exec(
+		`
+		INSERT
+			INTO scheduler
+			(date, title, comment, repeat)
+			VALUES (:date, :title, :comment, :repeat)
+		`,
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
 		sql.Named("comment", task.Comment),
 		sql.Named("repeat", task.Repeat))
 
+	if num, _ := res.RowsAffected(); num != 1 {
+		return 0, fmt.Errorf("DBStorage.AddTask: task already exists")
+	}
+
 	if err != nil {
-		return -1, fmt.Errorf("DBStorage.AddTask: %v", err)
+		return 0, fmt.Errorf("DBStorage.AddTask: %v", err)
 	}
 
 	id, err := res.LastInsertId()
@@ -31,12 +37,12 @@ func (storage *DBStorage) AddTask(task app.Task) (int64, error) {
 }
 
 func (storage *DBStorage) UpdateTask(task app.Task) error {
-	db, err := sql.Open("sqlite3_ext", storage.cfg.DBPath())
-	if err != nil {
-		return fmt.Errorf("DBStorage.UpdateTask: %v", err)
-	}
-
-	res, err := db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
+	res, err := storage.db.Exec(
+		`
+		UPDATE scheduler
+			SET date = :date, title = :title, comment = :comment, repeat = :repeat
+			WHERE id = :id
+		`,
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
 		sql.Named("comment", task.Comment),
@@ -58,15 +64,10 @@ func (storage *DBStorage) UpdateTask(task app.Task) error {
 }
 
 func (storage *DBStorage) RemoveTask(id string) error {
-	db, err := sql.Open("sqlite3_ext", storage.cfg.DBPath())
-	if err != nil {
-		return fmt.Errorf("DBStorage.RemoveTask: %v", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(
+	_, err := storage.db.Exec(
 		`
-		DELETE FROM scheduler
+		DELETE
+			FROM scheduler
 			WHERE id = :id
 		`,
 		sql.Named("id", id))
@@ -79,22 +80,17 @@ func (storage *DBStorage) RemoveTask(id string) error {
 }
 
 func (storage *DBStorage) GetTaskByID(id string) (app.Task, error) {
-	db, err := sql.Open("sqlite3_ext", storage.cfg.DBPath())
-	if err != nil {
-		return app.Task{}, fmt.Errorf("DBStorage.GetTask: %v", err)
-	}
-	defer db.Close()
-
-	row := db.QueryRow(
+	row := storage.db.QueryRow(
 		`
-		SELECT * FROM scheduler
+		SELECT id, date, title, comment, repeat
+			FROM scheduler
 			WHERE id = :id
 		`,
 		sql.Named("id", id))
 
 	var task app.Task
 
-	err = row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+	err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
 		return app.Task{}, fmt.Errorf("DBStorage.GetTask: %v", err)
 	}
@@ -103,22 +99,16 @@ func (storage *DBStorage) GetTaskByID(id string) (app.Task, error) {
 
 func (storage *DBStorage) GetTaskList(searchString string, maxLen int64) ([]app.Task, error) {
 	var tasks []app.Task
-
-	db, err := sql.Open("sqlite3_ext", storage.cfg.DBPath())
-	if err != nil {
-		return []app.Task{}, fmt.Errorf("DBStorage.GetTasks: %v", err)
-	}
-	defer db.Close()
-
 	dateString := searchString
 	caseInsensitiveRegExpr := ""
 	for _, c := range searchString {
 		caseInsensitiveRegExpr += "[" + strings.ToUpper(string(c)) + strings.ToLower(string(c)) + "]"
 	}
 
-	rows, err := db.Query(
+	rows, err := storage.db.Query(
 		`
-		SELECT * FROM scheduler
+		SELECT id, date, title, comment, repeat
+			FROM scheduler
 			WHERE
 				title REGEXP :search OR
 				comment REGEXP :search OR
@@ -164,7 +154,8 @@ func (storage *DBStorage) FindTask(title, date string) (string, error) {
 
 	row := db.QueryRow(
 		`
-		SELECT * FROM scheduler
+		SELECT id, date, title, comment, repeat
+			FROM scheduler
 			WHERE
 				title = :title AND
 				date = :date

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"go_final_project/internal/config"
 )
 
 type Application struct {
@@ -16,7 +18,7 @@ func CreateApplication(storage Storage) *Application {
 
 // Принимает текущее время now, предыдущую установленную дату задачи date, правило повторения repeat и возвращает новую дату
 func (app Application) NextDate(now, date, repeat string) (string, error) {
-	t, err := time.Parse("20060102", now)
+	t, err := time.Parse(config.DBDateFormat, now)
 	if err != nil {
 		return "", fmt.Errorf("Application.NextDate: %w", err)
 	}
@@ -37,10 +39,10 @@ func (app Application) CheckTask(task Task) (Task, error) {
 	now := time.Now()
 
 	if len(task.Date) == 0 {
-		task.Date = now.Format("20060102")
+		task.Date = now.Format(config.DBDateFormat)
 	}
 
-	date, err := time.Parse("20060102", task.Date)
+	date, err := time.Parse(config.DBDateFormat, task.Date)
 	if err != nil {
 		return task, fmt.Errorf("Application.CheckTask: Task.Date has Invalid format ")
 	}
@@ -55,7 +57,7 @@ func (app Application) CheckTask(task Task) (Task, error) {
 
 	if !date.After(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())) {
 		if len(task.Repeat) == 0 {
-			task.Date = now.Format("20060102")
+			task.Date = now.Format(config.DBDateFormat)
 		} else {
 			task.Date = nextDate
 		}
@@ -70,13 +72,6 @@ func (app Application) AddTask(task Task) (int64, error) {
 		return -1, err
 	}
 
-	id, err := app.storage.FindTask(task.Title, task.Date)
-	if err != nil {
-		return -1, err
-	}
-	if len(id) != 0 {
-		return 0, fmt.Errorf("Application.AddTask: task already exists on id=%s ", id)
-	}
 	return app.storage.AddTask(task)
 }
 
@@ -142,9 +137,9 @@ func (app Application) FinishTask(id string) error {
 
 // Возвращает слайс задач максимальной длиной maxLen, удовлетворяющих по названию, комментарию или дате фильтру searchString.
 func (app Application) GetTaskList(searchString string, maxLen int64) ([]Task, error) {
-	date, err := time.Parse("02.01.2006", searchString)
+	date, err := time.Parse(config.WebDateFormat, searchString)
 	if err == nil {
-		searchString = date.Format("20060102")
+		searchString = date.Format(config.DBDateFormat)
 	}
 
 	tasks, err := app.storage.GetTaskList(searchString, maxLen)

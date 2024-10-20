@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,7 +11,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting server")
+	log.Println("Starting server")
 
 	cfg := config.New()
 	database := db.New(cfg)
@@ -22,10 +21,16 @@ func main() {
 			return
 		}
 	}
+
+	if err := database.Open(); err != nil {
+		log.Fatal("main(): %w ", err)
+		return
+	}
+
 	application := app.CreateApplication(database)
 	mux := rest.NewMux(application, cfg)
 
-	fmt.Printf("Server is running on port: :%s\n", cfg.Port())
+	log.Printf("Server is running on port: :%s\n", cfg.Port())
 
 	err := http.ListenAndServe(":"+cfg.Port(), mux.ServeMux())
 	if err != nil {

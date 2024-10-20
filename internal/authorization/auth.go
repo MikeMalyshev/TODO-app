@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"fmt"
+
 	"go_final_project/internal/config"
 
 	"github.com/golang-jwt/jwt/v5"

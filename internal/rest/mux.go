@@ -3,10 +3,11 @@ package rest
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+
 	"go_final_project/internal/app"
 	"go_final_project/internal/authorization"
 	"go_final_project/internal/config"
-	"net/http"
 )
 
 type Mux struct {

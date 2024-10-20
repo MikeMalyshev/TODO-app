@@ -7,7 +7,6 @@ import (
 
 	"go_final_project/internal/config"
 
-	// _ "github.com/mattn/go-sqlite3"
 	stdlib "github.com/multiprocessio/go-sqlite3-stdlib"
 )
 
@@ -67,4 +66,17 @@ func (storage *DBStorage) Exists() bool {
 		return true
 	}
 	return false
+}
+
+func (storage *DBStorage) Open() error {
+	var err error
+	storage.db, err = sql.Open("sqlite3_ext", storage.cfg.DBPath())
+	if err != nil {
+		return fmt.Errorf("DBStorage.Open: %v", err)
+	}
+	return nil
+}
+
+func (storage *DBStorage) Close() error {
+	return storage.db.Close()
 }

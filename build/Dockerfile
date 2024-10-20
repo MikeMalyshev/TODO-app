@@ -1,5 +1,5 @@
 # Explain of this https://github.com/confluentinc/confluent-kafka-go/issues/898
-FROM --platform=linux/amd64 golang:1.22.2 AS builder
+FROM --platform=linux/amd64 golang:1.22.2
 
 WORKDIR /app
 COPY go.sum go.mod ./
@@ -10,8 +10,11 @@ COPY internal/ ./internal/
 COPY web/ ./web/
 COPY bin ./bin/
 
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -C cmd/ -o /bin/todo_app
-# RUN CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o /todo_app
+ENV CGO_ENABLED=1 \
+    GOOS=linux \
+    GOARCH=amd64
+
+RUN go build -C cmd/ -o /bin/todo_app
 
 ENV TODO_PORT="7540" \
     TODO_WEBDIR="/app/web" \
